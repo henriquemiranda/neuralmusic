@@ -17,6 +17,11 @@ def convert2wav(filename):
 
     return wavfilename
 
+def fftToPixel(fft):
+    L = abs(fft)
+    #log(1e-10) = -23.0258509299405
+    return -23.0258509299405 if L < 1e-10 else np.log(L)
+
 class WavToImage():
     """ Split audio samples and fft them
     """
@@ -66,10 +71,9 @@ class WavToImage():
     def plot_spectrogram(self,channel=0):
         """ Plot the historgram using matplotlib
         """
-        im = abs(self.wavfile_fft[channel].T)
-        eps = 1e-10
-        im[im<eps]=eps
-        plt.imshow(np.log(im),origin='lower')
+        tfft = self.wavfile_fft[channel].T
+        im = np.array(map(fftToPixel, tfft.flatten())).reshape(tfft.shape[0], tfft.shape[1])
+        plt.imshow(im, origin='lower')
         plt.show()
 
     def __str__(self):
