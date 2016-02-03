@@ -6,6 +6,7 @@ from scipy.io import wavfile
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+import math
 
 def convert2wav(filename):
     wavfilename = os.path.splitext(filename)[1]+'.wav'
@@ -18,9 +19,27 @@ def convert2wav(filename):
     return wavfilename
 
 def fftToPixel(fft):
+    H = math.atan2(fft.imag, fft.real)
+    #H = (H+math.pi*0.5)/math.pi*360
+    H = H/math.pi + 180
+    S = 1.0
     L = abs(fft)
     #log(1e-10) = -23.0258509299405
-    return -23.0258509299405 if L < 1e-10 else np.log(L)
+    L = -23.0258509299405 if L < 1e-10 else np.log(L)
+
+    #http://www.rapidtables.com/convert/color/hsl-to-rgb.htm
+    #if 0 < H < 360, 0 < S < 1, 0 < L < 1
+    C = (1 - abs(2*L-1)) * S
+    X = C * (1 - abs((H / 60) % 2 - 1))
+    m = L - C / 2
+    if     0 <= H <  60: R,G,B = (C, X, 0)
+    elif  60 <= H < 120: R,G,B = (X, C, 0)
+    elif 120 <= H < 180: R,G,B = (0, C, X)
+    elif 180 <= H < 240: R,G,B = (0, X, C)
+    elif 240 <= H < 300: R,G,B = (X, 0, C)
+    else:                R,G,B = (C, 0, X)
+
+    return (R+m, G+m, B+m)
 
 class WavToImage():
     """ Split audio samples and fft them
@@ -72,7 +91,7 @@ class WavToImage():
         """ Plot the historgram using matplotlib
         """
         tfft = self.wavfile_fft[channel].T
-        im = np.array(map(fftToPixel, tfft.flatten())).reshape(tfft.shape[0], tfft.shape[1])
+        im = np.array(map(fftToPixel, tfft.flatten())).reshape(tfft.shape[0], tfft.shape[1], 3)
         plt.imshow(im, origin='lower')
         plt.show()
 
